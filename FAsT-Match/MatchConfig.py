@@ -12,5 +12,5 @@ class MatchConfig:
 
     def get_affine_matrix(self):
         # ...
-        affine = np.zeros((2, 3))
+        affine = np.full((2, 3), 0.5)
         return affine

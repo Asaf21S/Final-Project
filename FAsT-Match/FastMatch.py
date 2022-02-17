@@ -46,7 +46,7 @@ class FastMatch:
         template = cv2.GaussianBlur(template, (0, 0), 2, 2)
 
         # randomly sample points
-        samples = [(randrange(1, template.shape[0]), randrange(1, template.shape[1])) for _ in range(np.rint(
+        samples_loc = [(randrange(1, template.shape[0]), randrange(1, template.shape[1])) for _ in range(np.rint(
             10 / np.square(self.epsilon)).astype(np.int32))]
 
         level = 0
@@ -66,7 +66,7 @@ class FastMatch:
             configs, affines = self.create_list_of_configs(net, template.shape, image.shape)
 
             # calculate distance for each configuration
-            distances = self.evaluate_configs()
+            distances = self.evaluate_configs(image, template, affines, samples_loc)
             break
 
         corners = [(20, 30), (100, 35), (120, 90), (25, 100)]
@@ -99,7 +99,9 @@ class FastMatch:
         corners[0] -= template_size[0] / 2 + 0.5
         corners[1] -= template_size[1] / 2 + 0.5
 
+        # print(corners)
         affine_corners = np.matmul(affines, corners)
+        # print(affine_corners[0])
         valid_configs = []
         valid_affines = []
         for indices, _ in np.ndenumerate(configs):
@@ -113,8 +115,44 @@ class FastMatch:
 
         return valid_configs, valid_affines
 
-    def evaluate_configs(self):
-        return []
+    def evaluate_configs(self, image, template, affines, samples_loc):
+        amount_of_points = len(samples_loc)
+
+        padded_image = np.pad(image, ((image.shape[1], image.shape[1]), (0, 0)))
+        template_samples = np.array([template[pnt[1] - 1, pnt[0] - 1] for pnt in samples_loc])
+        samples_loc = np.array(samples_loc).transpose()
+        samples_loc[0] -= int((template.shape[0] + 1) / 2)
+        samples_loc[1] -= int((template.shape[1] + 1) / 2)
+        samples_loc = np.vstack([samples_loc, [1.0] * amount_of_points])
+
+        # calculate the score for each configuration on each of our randomly samples point
+        # maybe use parallel processing
+        '''
+        pool = Pool()  # create a pool of processes
+        pool.map(self.calc_dist, range(len(affines)))  # call calc_dist for each affine matrix
+        pool.close()  # prevent any more tasks from being submitted to the pool
+        '''
+        distances = []
+        for affine in affines:
+            affine[0, 2] += image.shape[0] / 2 + 1
+            affine[1, 2] += image.shape[1] / 2 + 1 + image.shape[1]
+            transformed_samples_loc = np.matmul(affine, samples_loc)
+            transformed_samples_loc = transformed_samples_loc.astype(int) - 1
+            transformed_samples_loc = [(transformed_samples_loc[0, i], transformed_samples_loc[1, i]) for i in range(amount_of_points)]
+            image_samples = np.array([padded_image[pnt[1] - 1, pnt[0] - 1] for pnt in transformed_samples_loc])
+
+            if not self.photometric_invariance:
+                score = np.sum(np.abs(template_samples - image_samples))
+            else:
+                sums = (np.sum(template_samples), np.sum(image_samples),
+                        np.sum(np.square(template_samples)), np.sum(np.square(image_samples)))
+                sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + 0.0000001
+                sigma_y = np.sqrt((sums[3] - np.square(sums[1]) / amount_of_points) / amount_of_points) + 0.0000001
+                sigma_div = sigma_x / sigma_y
+                score = np.sum(np.abs(template_samples - (image_samples * sigma_div) + (sums[1] * sigma_div + sums[0]) / amount_of_points))
+
+            distances.append(score / amount_of_points)
+        return distances
 
     '''
 # for debugging
