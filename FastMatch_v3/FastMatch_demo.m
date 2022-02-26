@@ -39,6 +39,9 @@ if example_1
         
     % reading the 'ground-truth' transformation (not mandatory)
     load([pwd '/example/OptMat.mat'], 'optMat');
+
+    % save("template.mat", "template")
+    % save("img.mat", "img")
     
     % FastMatch run
     [bestConfig,bestTransMat,sampledError] = FastMatch(template,img);
