@@ -52,8 +52,10 @@ class FastMatch:
         level = 0
         delta_fact = 1.511
         new_delta = self.delta
+        configs = []
+        affines = []
         best_config = MatchConfig()
-        best_trans = np.empty([3, 3], dtype=float)
+        best_affine = np.zeros((2, 3))
         best_distances = np.zeros(20)  # might need to change to python list instead of numpy array if resizing required
         best_distance = 0.0
         distances = []
@@ -63,12 +65,53 @@ class FastMatch:
             level += 1
 
             # first create configurations based on our net
-            configs, affines = self.create_list_of_configs(net, template.shape, image.shape)
+            if level == 1:
+                configs, affines = self.create_list_of_configs(net, template.shape, image.shape)
 
             # calculate distance for each configuration
             distances = self.evaluate_configs(image, template, affines, samples_loc)
-            break
 
+            # find the minimum distance
+            best_distance = best_distances[level] = min(distances)
+            min_index = distances.index(best_distance)
+            best_config = configs[min_index]
+            best_affine = affines[min_index]
+
+            # conditions to exit the loop
+            if best_distance < 0.005 or (level > 2 and best_distance < 0.015) or level >= 20:
+                break
+            if level > 3 and best_distance > ((best_distances[level - 3] + best_distances[level - 2] +
+                                               best_distances[level - 1]) / len(distances)) * 0.97:
+                break
+
+            # get the good configurations that falls between certain thresholds
+            good_configs, good_affines = self.get_good_configs(configs, affines, best_distance, new_delta, distances)
+            if level == 1 and ((len(good_configs) / len(configs) > 0.022 and best_distance > 0.05 and
+                                len(configs) < 7.5e6) or (best_distance > 0.1 and len(configs) < 5e6)):
+                # restart
+                factor = 0.9
+                new_delta *= factor
+                level -= 1
+                net *= factor
+            else:
+                new_delta /= delta_fact
+                number_of_points = 80  # amount of new points for each good configuration
+                expanded_configs_mat = self.random_expand_configs(good_configs, net, new_delta, number_of_points)
+                # expanded_config_mat is (1, 6) representation of configuration. this is NOT the affine matrix
+                expanded_configs, expanded_affines = self.get_list_of_configs(expanded_configs_mat, template.shape, image.shape)
+
+                configs = [good_configs, expanded_configs]
+                affines = [good_affines, expanded_affines]
+                # or something like that
+                # make sure that configs and affines are the same variables as before and not local variables
+                # add comments on everything
+
+            '''/* Randomly sample points again */
+            rng.fill( xs, RNG::UNIFORM, 1, templ.cols );
+            rng.fill( ys, RNG::UNIFORM, 1, templ.rows );'''
+
+        '''/* Return the rectangle corners based on the best affine transformation */
+        return calcCorners( image.size(), templ.size(), best_trans );'''
         corners = [(20, 30), (100, 35), (120, 90), (25, 100)]
         return np.array([corners])
 
@@ -124,6 +167,7 @@ class FastMatch:
         samples_loc[0] -= int((template.shape[0] + 1) / 2)
         samples_loc[1] -= int((template.shape[1] + 1) / 2)
         samples_loc = np.vstack([samples_loc, [1.0] * amount_of_points])
+        epsilon = 1.0e-7
 
         # calculate the score for each configuration on each of our randomly samples point
         # maybe use parallel processing
@@ -146,13 +190,63 @@ class FastMatch:
             else:
                 sums = (np.sum(template_samples), np.sum(image_samples),
                         np.sum(np.square(template_samples)), np.sum(np.square(image_samples)))
-                sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + 0.0000001
-                sigma_y = np.sqrt((sums[3] - np.square(sums[1]) / amount_of_points) / amount_of_points) + 0.0000001
+                sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + epsilon
+                sigma_y = np.sqrt((sums[3] - np.square(sums[1]) / amount_of_points) / amount_of_points) + epsilon
                 sigma_div = sigma_x / sigma_y
                 score = np.sum(np.abs(template_samples - (image_samples * sigma_div) + (sums[1] * sigma_div + sums[0]) / amount_of_points))
 
             distances.append(score / amount_of_points)
         return distances
+
+    def get_good_configs(self, configs, affines, best_distance, new_delta, distances):
+        threshold = best_distance + self.get_threshold(new_delta)
+        good_configs = []
+        good_affines = []
+        for i in range(len(configs)):
+            if distances[i] <= threshold:
+                good_configs.append(configs[i])
+                good_affines.append(affines[i])
+        while len(good_configs) > 27000:
+            good_configs = []
+            good_affines = []
+            threshold *= 0.99
+            for i in range(len(configs)):
+                if distances[i] <= threshold:
+                    good_configs.append(configs[i])
+                    good_affines.append(affines[i])
+        if len(good_configs) == 0:
+            print("Error: no good configurations were found")
+        return good_configs
+
+    @staticmethod
+    def get_threshold(delta):
+        p0 = 0.1341
+        p1 = 0.0278
+        safety = 0.02
+        return p0 * delta + p1 - safety
+
+    def random_expand_configs(self, configs, net, factor, number_of_points):
+        # create random 2x3 matrices
+        random_vec = np.random.normal(0, 0.5, size=(number_of_points * len(configs), 2, 3))  # need to be changed to size=(number_of_points * len(configs), 6)
+        # NEED TO ADD: random_vec.convertTo( random_vec, CV_32FC1 );
+        ranges = np.empty((1, 2, 3))  # need to be changed to (1, 6)
+        ranges[0][0][0] = net.tx_steps / factor  # need to be changed accordingly
+        ranges[0][0][1] = net.ty_steps / factor  # need to be changed accordingly
+        ranges[0][0][2] = ranges[0][1][2] = net.rot_steps / factor  # need to be changed accordingly
+        ranges[0][1][0] = ranges[0][1][1] = net.sc_steps / factor  # need to be changed accordingly
+        ranges = np.repeat(ranges, number_of_points * len(configs), axis=0)  # don't change
+        # change this to (1, 6) representation of configuration. this is NOT the affine matrix
+        expanded = np.array(configs.asMatrix)  # (123120, 2, 3) -> need to be changed to (123120, 6)
+        expanded = np.repeat(expanded, number_of_points, axis=0)  # don't change
+        expanded_config_mat = expanded + random_vec * ranges  # don't change
+        print(expanded_config_mat.shape)
+        return expanded_config_mat
+
+    def get_list_of_configs(self, config_mat, template_size, image_size):
+        # config_mat.shape = (amount_of_good_configs * expension_factor, 2, 3) -> need to be changed to (..., 6)
+        # this function need to do the same like create_list_of_configs but using the config_mat instead of Net
+        # that mean check for boundries too. and return list of configs and list of affines
+        return [], []
 
     '''
 # for debugging
