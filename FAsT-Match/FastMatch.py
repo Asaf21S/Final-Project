@@ -22,8 +22,8 @@ class FastMatch:
 
     def run(self, image, template):
         # preprocess the images
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        #template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         template = cv2.normalize(template, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         if image.shape[0] % 2 == 0:
@@ -259,3 +259,15 @@ plt.imshow(template, cmap='gray')
 plt.title("template")
 plt.show()
 '''
+
+
+def test_alg():
+    from scipy.io import loadmat
+    template = loadmat('template.mat')['template']
+    img = loadmat('img.mat')['img']
+    fast_match = FastMatch()
+    fast_match.run(template, img)
+
+
+if __name__ == "__main__":
+    test_alg()
