@@ -6,6 +6,15 @@ class MatchNet:
     def __init__(self, width: int, height: int, delta: float,
                  min_tx: float, max_tx: float, min_ty: float, max_ty: float,
                  min_rot: float, max_rot: float, min_sc: float, max_sc: float):
+        if not 0 <= min_sc <= 1:
+            raise Exception("min_sc should be between 0 and 1")
+        if not 1 <= max_sc <= 5:
+            raise Exception("max_sc should be between 1 and 5")
+        if not -np.pi <= min_rot <= 0:
+            raise Exception("min_rot should be between -pi and 0")
+        if not 0 <= max_rot <= np.pi:
+            raise Exception("max_rot should be between 0 and pi")
+
         self.tx_bounds = (min_tx, max_tx)
         self.ty_bounds = (min_ty, max_ty)
         self.rot_bounds = (min_rot, max_rot)
@@ -17,30 +26,24 @@ class MatchNet:
         self.sc_steps = delta / np.sqrt(2)
 
     def get_tx_steps(self):
-        steps = []
-        for step in np.arange(self.tx_bounds[0], self.tx_bounds[1] + 0.5 * self.tx_steps, self.tx_steps):
-            steps.append(step)
-        return steps
+        # 'pad' at end of range with an extra sample
+        return np.arange(self.tx_bounds[0], self.tx_bounds[1] + 0.5 * self.tx_steps, self.tx_steps)
 
     def get_ty_steps(self):
-        steps = []
-        for step in np.arange(self.ty_bounds[0], self.ty_bounds[1] + 0.5 * self.ty_steps, self.ty_steps):
-            steps.append(step)
-        return steps
+        # 'pad' at end of range with an extra sample
+        return np.arange(self.ty_bounds[0], self.ty_bounds[1] + 0.5 * self.ty_steps, self.ty_steps)
 
     def get_rotation_steps(self):
-        steps = []
-        for step in np.arange(self.rot_bounds[0], self.rot_bounds[1] + 0.5 * self.rot_steps, self.rot_steps):
-            steps.append(step)
-        return steps
+        # np.arange(self.rot_bounds[0], self.rot_bounds[1] + 0.5 * self.rot_steps, self.rot_steps)
+        # Rotations ignore the user selected range here - it is handles in main function
+        # no padding since it is a cyclic range
+        return np.arange(-np.pi, np.pi, self.rot_steps)
 
     def get_scale_steps(self):
         if self.sc_steps == 0.0:
-            return [self.sc_bounds[0]]
-        steps = []
-        for step in np.arange(self.sc_bounds[0], self.sc_bounds[1] + 0.5 * self.sc_steps, self.sc_steps):
-            steps.append(step)
-        return steps
+            return np.array([self.sc_bounds[0]])
+        # 'pad' at end of range with an extra sample
+        return np.arange(self.sc_bounds[0], self.sc_bounds[1] + 0.5 * self.sc_steps, self.sc_steps)
 
     def __mul__(self, factor):
         if isinstance(factor, (int, float)):
