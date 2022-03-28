@@ -10,8 +10,7 @@ def fast_match():
     fm = FastMatch()
     corners = fm.run(image, template)
     result_image = image.copy()
-    cv2.polylines(result_image, corners, True, (255, 255, 255), 1)
-
+    cv2.polylines(result_image, [corners], True, (255, 0, 0), 1)
 
     plt.figure()
     plt.subplot(2, 2, 1)
@@ -21,7 +20,7 @@ def fast_match():
     plt.imshow(template, cmap='gray')
     plt.title("template")
     plt.subplot(2, 2, 3)
-    plt.imshow(result_image, cmap='gray')
+    plt.imshow(result_image)
     plt.title("result")
 
     plt.show()
@@ -29,16 +28,3 @@ def fast_match():
 
 if __name__ == '__main__':
     fast_match()
-
-
-'''
-# for debugging
-plt.figure()
-plt.subplot(1, 2, 1)
-plt.imshow(image, cmap='gray')
-plt.title("image")
-plt.subplot(1, 2, 2)
-plt.imshow(template, cmap='gray')
-plt.title("template")
-plt.show()
-'''

@@ -35,7 +35,7 @@ class MatchNet:
 
     def get_rotation_steps(self):
         # np.arange(self.rot_bounds[0], self.rot_bounds[1] + 0.5 * self.rot_steps, self.rot_steps)
-        # Rotations ignore the user selected range here - it is handles in main function
+        # Rotations ignore the user selected range here - it is handled in main function
         # no padding since it is a cyclic range
         return np.arange(-np.pi, np.pi, self.rot_steps)
 
