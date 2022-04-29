@@ -16,11 +16,11 @@ CompileMex
 %% Select examples to run
 
 example_1 = 1; % "predefined template in a predefined image"
-example_2 = 1; % "predefined template with given MASK in a predefined image"
-example_3 = 1; % "RANDOM template in a user-selected image"
-example_4 = 1; % "USER-SELECTED template in a user-selected image"
-example_5 = 1; % "choose a pair of RELATED images and select a template in the first"
-example_6 = 1; % "random template in a user-selected image with a limited SEARCH RANGE"
+example_2 = 0; % "predefined template with given MASK in a predefined image"
+example_3 = 0; % "RANDOM template in a user-selected image"
+example_4 = 0; % "USER-SELECTED template in a user-selected image"
+example_5 = 0; % "choose a pair of RELATED images and select a template in the first"
+example_6 = 0; % "random template in a user-selected image with a limited SEARCH RANGE"
 
 %%
 

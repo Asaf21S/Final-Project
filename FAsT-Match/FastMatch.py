@@ -343,10 +343,11 @@ class FastMatch:
 
     @staticmethod
     def get_corners(template_shape, image_shape1, best_affine):
-        corners = np.zeros((3, 4))
-        corners[0, 2] = corners[0, 3] = template_shape[0]
-        corners[1, 1] = corners[1, 2] = template_shape[1]
-        corners[2, :] = 1
+        corners = np.ones((3, 4))
+        corners[0, 1] = corners[0, 2] = template_shape[0]
+        corners[1, 2] = corners[1, 3] = template_shape[1]
+        corners[0] -= template_shape[0] / 2 + 0.5
+        corners[1] -= template_shape[1] / 2 + 0.5
 
         transformed_corners = np.matmul(best_affine, corners)
         points = np.array([[transformed_corners[1, 0] - image_shape1, transformed_corners[0, 0]],
