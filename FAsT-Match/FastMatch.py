@@ -4,12 +4,6 @@ import cv2
 from random import randrange
 import time
 
-'''
-example of multiprocessing (for CPU-bound usage):
-https://www.analyticsvidhya.com/blog/2021/04/a-beginners-guide-to-multi-processing-in-python/#:~:text=regular%20for%20loop.-,Using%20a%20Pool%20class%2D,-import%20time%0Aimport
-from multiprocessing import Pool
-'''
-
 
 class FastMatch:
     def __init__(self, epsilon=0.15, delta=0.25, photometric_invariance=False, min_scale=0.5, max_scale=2):
@@ -18,7 +12,6 @@ class FastMatch:
         self.photometric_invariance = photometric_invariance
         self.min_scale = min_scale
         self.max_scale = max_scale
-        # add template_mask
 
     def run(self, image, template):
         total_time = time.time()
@@ -87,6 +80,8 @@ class FastMatch:
             print("\n----- Level {} configs_to_affines, with {} configs -----".format(level, configs.shape[0]))
             configs, affines = self.configs_to_affines(configs, image.shape, template.shape)
             print("----- {:.8f} seconds -----".format(time.time() - tic))
+
+            # corners = self.get_corners(template.shape, image.shape[1], affines)
 
             # 2] evaluate all configurations
             tic = time.time()
@@ -169,11 +164,11 @@ class FastMatch:
             samples_loc = [(randrange(1, template.shape[0]), randrange(1, template.shape[1])) for _ in range(
                 np.rint(num_points).astype(np.int32))]
 
-        corners = self.get_corners(template.shape, image.shape[1], best_affine)
+        corners = self.get_corners(template.shape, image.shape[1], best_affine)[0]
         print('\n\n~~~ Finished FAsT Match in {:.8f} seconds ~~~'.format(time.time() - total_time))
         print("Result corners:")
-        print(corners[0, 0], corners[1, 0], corners[2, 0], corners[3, 0])
-        return corners
+        print(corners[0], corners[1], corners[2], corners[3])
+        return corners.reshape((-1, 1, 2))
 
     @staticmethod
     def create_list_of_configs(net: MatchNet):
@@ -219,22 +214,18 @@ class FastMatch:
     @staticmethod
     def configs_to_affines(configs, im_shape, te_shape):
         affines = np.empty((configs.shape[0], 2, 3))
-        affine_mat = np.empty((2, 3))
-        for i in range(configs.shape[0]):
-            current_config = configs[i]
-            c1c2 = np.cos(current_config[5]) * np.cos(current_config[2])
-            s1s2 = np.sin(current_config[5]) * np.sin(current_config[2])
-            c1s2 = np.cos(current_config[5]) * np.sin(current_config[2])
-            s1c2 = np.sin(current_config[5]) * np.cos(current_config[2])
 
-            affine_mat[0, 0] = current_config[3] * c1c2 - current_config[4] * s1s2
-            affine_mat[0, 1] = -current_config[3] * c1s2 - current_config[4] * s1c2
-            affine_mat[0, 2] = current_config[0]
-            affine_mat[1, 0] = current_config[3] * s1c2 + current_config[4] * c1s2
-            affine_mat[1, 1] = current_config[4] * c1c2 - current_config[3] * s1s2
-            affine_mat[1, 2] = current_config[1]
+        c1c2 = np.cos(configs[:, 5]) * np.cos(configs[:, 2])
+        s1s2 = np.sin(configs[:, 5]) * np.sin(configs[:, 2])
+        c1s2 = np.cos(configs[:, 5]) * np.sin(configs[:, 2])
+        s1c2 = np.sin(configs[:, 5]) * np.cos(configs[:, 2])
 
-            affines[i] = affine_mat
+        affines[:, 0, 0] = configs[:, 3] * c1c2 - configs[:, 4] * s1s2
+        affines[:, 0, 1] = -configs[:, 3] * c1s2 - configs[:, 4] * s1c2
+        affines[:, 0, 2] = configs[:, 0]
+        affines[:, 1, 0] = configs[:, 3] * s1c2 + configs[:, 4] * c1s2
+        affines[:, 1, 1] = configs[:, 4] * c1c2 - configs[:, 3] * s1s2
+        affines[:, 1, 2] = configs[:, 1]
 
         # filter configurations which fall outside of image boundaries
         corners = np.ones((3, 4))
@@ -265,41 +256,36 @@ class FastMatch:
         amount_of_points = len(samples_loc)
 
         padded_image = np.pad(image, ((0, 0), (image.shape[1], image.shape[1])))
-        template_samples = np.array([template[pnt[0] - 1, pnt[1] - 1] for pnt in samples_loc])
-        samples_loc = np.array(samples_loc).transpose()
+        samples_loc = np.array(samples_loc)
+        template_samples = template[samples_loc[:, 0] - 1, samples_loc[:, 1] - 1]
+        samples_loc = samples_loc.T
         samples_loc[0] -= int((template.shape[0] + 1) / 2)
         samples_loc[1] -= int((template.shape[1] + 1) / 2)
         samples_loc = np.vstack([samples_loc, [1.0] * amount_of_points])
 
         epsilon = 1.0e-7
-        distances = []
         print("2\tStart evaluation for every affine")
 
         affines[:, 0, 2] += image.shape[0] / 2 + 1
         affines[:, 1, 2] += image.shape[1] / 2 + 1 + 1 * image.shape[1]
         transformed_samples_loc = np.matmul(affines, samples_loc)  # shape = (#of_configs, 2, #of_samples)
         transformed_samples_loc = transformed_samples_loc.astype(int) - 1  # astype rounding down
-        image_samples = np.empty((transformed_samples_loc.shape[0], amount_of_points))
-        image_samples = image_samples
 
         print("2\tStart extracting transformed samples from image")
-        for i in range(transformed_samples_loc.shape[0]):
-            image_samples[i] = np.array([padded_image[transformed_samples_loc[i, 0, pnt],
-                                                      transformed_samples_loc[i, 1, pnt]]
-                                         for pnt in range(transformed_samples_loc.shape[2])])
+        image_samples = padded_image[transformed_samples_loc[:, 0, :], transformed_samples_loc[:, 1, :]]
 
-            if not self.photometric_invariance:
-                score = np.sum(np.abs(template_samples - image_samples[i]))
-            else:
-                sums = (np.sum(template_samples), np.sum(image_samples[i]),
-                        np.sum(np.square(template_samples)), np.sum(np.square(image_samples[i])))
-                sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + epsilon
-                sigma_y = np.sqrt((sums[3] - np.square(sums[1]) / amount_of_points) / amount_of_points) + epsilon
-                sigma_div = sigma_x / sigma_y
-                score = np.sum(np.abs(template_samples - (image_samples[i] * sigma_div) + (
-                            sums[1] * sigma_div - sums[0]) / amount_of_points))
+        if not self.photometric_invariance:
+            score = np.sum(np.abs(template_samples - image_samples[:]), axis=1)
+        else:
+            sums = (np.sum(template_samples), np.sum(image_samples[:], axis=1),
+                    np.sum(np.square(template_samples)), np.sum(np.square(image_samples[:]), axis=1))
+            sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + epsilon
+            sigma_y = np.sqrt((sums[3] - np.square(sums[1]) / amount_of_points) / amount_of_points) + epsilon
+            sigma_div = sigma_x / sigma_y
+            score = np.sum(np.abs(template_samples - (image_samples[:] * sigma_div) + (
+                    sums[1] * sigma_div - sums[0]) / amount_of_points), axis=1)
 
-            distances.append(score / amount_of_points)
+        distances = list(score / amount_of_points)
         return distances
 
     def get_good_configs(self, configs, affines, best_distance, new_delta, distances):
@@ -342,17 +328,18 @@ class FastMatch:
         return expanded
 
     @staticmethod
-    def get_corners(template_shape, image_shape1, best_affine):
+    def get_corners(template_shape, image_shape1, affine_mat):
         corners = np.ones((3, 4))
         corners[0, 1] = corners[0, 2] = template_shape[0]
         corners[1, 2] = corners[1, 3] = template_shape[1]
         corners[0] -= template_shape[0] / 2 + 0.5
         corners[1] -= template_shape[1] / 2 + 0.5
 
-        transformed_corners = np.matmul(best_affine, corners)
-        points = np.array([[transformed_corners[1, 0] - image_shape1, transformed_corners[0, 0]],
-                           [transformed_corners[1, 1] - image_shape1, transformed_corners[0, 1]],
-                           [transformed_corners[1, 2] - image_shape1, transformed_corners[0, 2]],
-                           [transformed_corners[1, 3] - image_shape1, transformed_corners[0, 3]]], np.int32)
-        points = points.reshape((-1, 1, 2))
-        return points
+        transformed_corners = np.matmul(affine_mat, corners)
+        if affine_mat.ndim == 2:
+            transformed_corners = np.array([transformed_corners])
+
+        transformed_corners[:, 1] -= image_shape1
+        transformed_corners[:, [0, 1]] = transformed_corners[:, [1, 0]]
+        transformed_corners = np.transpose(transformed_corners, axes=(0, 2, 1)).astype(np.int32)
+        return transformed_corners
