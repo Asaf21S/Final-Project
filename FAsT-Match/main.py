@@ -1,6 +1,8 @@
 from FastMatch import FastMatch
+import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import sklearn
 
 
 def fast_match():
@@ -8,7 +10,8 @@ def fast_match():
     template = cv2.imread(r"Images\template.png")
 
     fm = FastMatch()
-    corners = fm.run(image, template)
+    real_corners = np.array([[147, 212], [214, 188], [267, 35], [200, 60]])
+    corners = fm.run(image, template, real_corners)
     result_image = image.copy()
     cv2.polylines(result_image, [corners], True, (255, 0, 0), 1)
 

@@ -13,7 +13,7 @@ class FastMatch:
         self.min_scale = min_scale
         self.max_scale = max_scale
 
-    def run(self, image, template):
+    def run(self, image, template, real_corners=None):
         total_time = time.time()
 
         # preprocess the images
@@ -57,6 +57,7 @@ class FastMatch:
         num_configs = np.empty(20)
         num_good_configs = np.empty(20)
         orig_percentages = np.empty(20)
+        correct_index = -1
 
         while True:
             level += 1
@@ -81,8 +82,6 @@ class FastMatch:
             configs, affines = self.configs_to_affines(configs, image.shape, template.shape)
             print("----- {:.8f} seconds -----".format(time.time() - tic))
 
-            # corners = self.get_corners(template.shape, image.shape[1], affines)
-
             # 2] evaluate all configurations
             tic = time.time()
             print("\n----- Level {} evaluate_configs, with {} configs -----".format(level, configs.shape[0]))
@@ -91,6 +90,28 @@ class FastMatch:
             best_distance = min(distances)
             best_dists[level - 1] = best_distance
             min_index = distances.index(best_distance)
+
+            if real_corners is not None:
+                corners = self.get_corners(template.shape, image.shape[1], affines)
+                dist = corners - real_corners
+                dist = np.square(dist)
+                dist = np.sum(dist, axis=2)
+                dist = np.sqrt(dist)
+                dist = np.sum(dist, axis=1)
+                correct_index = np.argmin(dist)
+
+                level1_distances = np.array(distances)
+                correct_distance = distances[correct_index]
+                required_safety = correct_distance - best_distance
+                # the safety_window function return a number that should be at least required_safety
+
+                print("min_index", min_index, "correct_index", correct_index)
+                print("required_safety", required_safety)
+                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety])
+                print("configs between best and min_th:", between)
+                print("unique configs between best and min_th:", between - np.unique(affines[level1_distances <= best_distance + required_safety], axis=0). shape[0])
+                print("total amount of configs:", len(level1_distances))
+
             # best_config = configs[min_index]
             best_affine = affines[min_index]
             print("2\tbestDist = {:.3}".format(best_distance))
@@ -289,7 +310,7 @@ class FastMatch:
         return distances
 
     def get_good_configs(self, configs, affines, best_distance, new_delta, distances):
-        threshold = best_distance + self.get_threshold(new_delta)
+        threshold = best_distance + self.safety_window(new_delta)
         good_configs = configs[distances <= threshold, :]
         orig_percentage = good_configs.shape[0] / configs.shape[0]
 
@@ -309,7 +330,7 @@ class FastMatch:
         return good_configs, good_affines, orig_percentage
 
     @staticmethod
-    def get_threshold(delta):
+    def safety_window(delta):
         p0 = 0.1341
         p1 = 0.0278
         safety = 0.02
