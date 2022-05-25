@@ -57,7 +57,7 @@ class FastMatch:
         num_configs = np.empty(20)
         num_good_configs = np.empty(20)
         orig_percentages = np.empty(20)
-        correct_index = -1
+        ml_model_input = np.empty((0, 8))
 
         while True:
             level += 1
@@ -86,10 +86,15 @@ class FastMatch:
             tic = time.time()
             print("\n----- Level {} evaluate_configs, with {} configs -----".format(level, configs.shape[0]))
             distances = self.evaluate_configs(image, template, affines, samples_loc)
+            # modifying affines and samples_loc
+
             # find the minimum distance
             best_distance = min(distances)
             best_dists[level - 1] = best_distance
             min_index = distances.index(best_distance)
+            # best_config = configs[min_index]
+            best_affine = affines[min_index]
+            print("2\tbestDist = {:.3}".format(best_distance))
 
             if real_corners is not None:
                 corners = self.get_corners(template.shape, image.shape[1], affines)
@@ -109,12 +114,26 @@ class FastMatch:
                 print("required_safety", required_safety)
                 between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety])
                 print("configs between best and min_th:", between)
-                print("unique configs between best and min_th:", between - np.unique(affines[level1_distances <= best_distance + required_safety], axis=0). shape[0])
+                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.1])
+                print("configs between best and min_th * 1.1:", between)
+                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.2])
+                print("configs between best and min_th * 1.2:", between)
+                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.5])
+                print("configs between best and min_th * 1.5:", between)
+                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 2.0])
+                print("configs between best and min_th * 2.0:", between)
+
+                print("unique configs between best and min_th:", np.unique(affines[level1_distances <= best_distance + required_safety], axis=0). shape[0])
                 print("total amount of configs:", len(level1_distances))
 
-            # best_config = configs[min_index]
-            best_affine = affines[min_index]
-            print("2\tbestDist = {:.3}".format(best_distance))
+                # preparing input for ML model:
+                ideal_th = best_distance + required_safety * 2.0  # this is y/output/label
+                # the other 7 numbers are features
+                ml_model_input_row = np.array([ideal_th, new_delta, best_distance, image.shape[0], image.shape[1],
+                                               template.shape[0], template.shape[1], len(level1_distances)])
+                print(ml_model_input, ml_model_input_row)
+                ml_model_input = np.vstack([ml_model_input, ml_model_input_row])
+
             print("----- {:.8f} seconds -----".format(time.time() - tic))
 
             # 3] choose the 'surviving' configs and delta for next round
@@ -189,7 +208,8 @@ class FastMatch:
         print('\n\n~~~ Finished FAsT Match in {:.8f} seconds ~~~'.format(time.time() - total_time))
         print("Result corners:")
         print(corners[0], corners[1], corners[2], corners[3])
-        return corners.reshape((-1, 1, 2))
+        print("ml_model_input", ml_model_input)
+        return corners.reshape((-1, 1, 2)), ml_model_input
 
     @staticmethod
     def create_list_of_configs(net: MatchNet):
