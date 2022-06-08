@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 from random import randrange
 import time
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 class FastMatch:
@@ -105,34 +107,57 @@ class FastMatch:
                 dist = np.sum(dist, axis=1)
                 correct_index = np.argmin(dist)
 
-                level1_distances = np.array(distances)
+                distances_arr = np.array(distances)
                 correct_distance = distances[correct_index]
                 required_safety = correct_distance - best_distance
                 # the safety_window function return a number that should be at least required_safety
 
                 print("min_index", min_index, "correct_index", correct_index)
                 print("required_safety", required_safety)
-                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety])
+                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety])
                 print("configs between best and min_th:", between)
-                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.1])
+                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.1])
                 print("configs between best and min_th * 1.1:", between)
-                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.2])
+                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.2])
                 print("configs between best and min_th * 1.2:", between)
-                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 1.5])
+                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.5])
                 print("configs between best and min_th * 1.5:", between)
-                between = np.count_nonzero(level1_distances[level1_distances <= best_distance + required_safety * 2.0])
+                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 2.0])
                 print("configs between best and min_th * 2.0:", between)
 
-                print("unique configs between best and min_th:", np.unique(affines[level1_distances <= best_distance + required_safety], axis=0). shape[0])
-                print("total amount of configs:", len(level1_distances))
+                print("unique configs between best and min_th:", np.unique(affines[distances_arr <= best_distance +
+                                                                                   required_safety], axis=0). shape[0])
+                print("total amount of configs:", distances_arr.shape[0])
 
                 # preparing input for ML model:
                 ideal_th = best_distance + required_safety * 2.0  # this is y/output/label
                 # the other 7 numbers are features
                 ml_model_input_row = np.array([ideal_th, new_delta, best_distance, image.shape[0], image.shape[1],
-                                               template.shape[0], template.shape[1], len(level1_distances)])
+                                               template.shape[0], template.shape[1], len(distances_arr)])
                 print(ml_model_input, ml_model_input_row)
                 ml_model_input = np.vstack([ml_model_input, ml_model_input_row])
+
+                '''
+                plt.figure()
+                n, bins, patches = plt.hist(distances_arr, bins=100)
+
+                hist_min_distance = float("inf")
+                index_of_bar_to_label = 0
+                for i, rectangle in enumerate(patches):
+                    tmp = abs((rectangle.get_x() + (rectangle.get_width() * (1 / 2))) - correct_distance)
+                    if tmp < hist_min_distance:
+                        hist_min_distance = tmp
+                        index_of_bar_to_label = i
+                patches[index_of_bar_to_label].set_color('g')
+
+                print("describe")
+                max_percent = 27000 / distances_arr.shape[0]
+                if max_percent > 1:
+                    max_percent = 1
+                percentiles = np.linspace(0, max_percent, 10)
+                desc = pd.DataFrame(distances_arr).describe(percentiles=percentiles)
+                print(desc, type(desc), desc.shape)
+                '''
 
             print("----- {:.8f} seconds -----".format(time.time() - tic))
 
@@ -197,6 +222,11 @@ class FastMatch:
                 number_of_points = 80  # amount of new points for each good configuration
                 expanded_configs = self.random_expand_configs(good_configs, net, level, number_of_points, delta_fact)
                 configs = np.concatenate((good_configs, expanded_configs))
+
+                # remove duplicates
+                configs_tuple = [tuple(row) for row in configs]
+                configs = np.unique(configs_tuple, axis=0)
+
                 print("*** level {} completed: |goodConfigs| = {}, |expandedConfigs| = {}\n".format(
                     level, good_configs.shape[0], configs.shape[0]))
 
@@ -309,15 +339,28 @@ class FastMatch:
 
         affines[:, 0, 2] += image.shape[0] / 2 + 1
         affines[:, 1, 2] += image.shape[1] / 2 + 1 + 1 * image.shape[1]
-        transformed_samples_loc = np.matmul(affines, samples_loc)  # shape = (#of_configs, 2, #of_samples)
-        transformed_samples_loc = transformed_samples_loc.astype(int) - 1  # astype rounding down
-
-        print("2\tStart extracting transformed samples from image")
-        image_samples = padded_image[transformed_samples_loc[:, 0, :], transformed_samples_loc[:, 1, :]]
 
         if not self.photometric_invariance:
-            score = np.sum(np.abs(template_samples - image_samples[:]), axis=1)
+            score = np.array([])
+            print("2\tStart extracting transformed samples from image")
+            partition = 100000
+            for i in range(int(np.ceil(affines.shape[0] / partition))):
+                if partition * (i + 1) > affines.shape[0]:
+                    transformed_samples_loc = np.matmul(affines[partition * i:, :, :], samples_loc)
+                else:
+                    transformed_samples_loc = np.matmul(affines[partition * i:partition * (i + 1), :, :],
+                                                        samples_loc)  # shape = (partition, 2, #of_samples)
+                transformed_samples_loc = transformed_samples_loc.astype(int) - 1  # astype rounding down
+
+                image_samples = padded_image[transformed_samples_loc[:, 0, :], transformed_samples_loc[:, 1, :]]
+                score = np.append(score, np.sum(np.abs(template_samples - image_samples[:]), axis=1))
         else:
+            transformed_samples_loc = np.matmul(affines, samples_loc)  # shape = (#of_configs, 2, #of_samples)
+            transformed_samples_loc = transformed_samples_loc.astype(int) - 1  # astype rounding down
+
+            print("2\tStart extracting transformed samples from image")
+            image_samples = padded_image[transformed_samples_loc[:, 0, :], transformed_samples_loc[:, 1, :]]
+
             sums = (np.sum(template_samples), np.sum(image_samples[:], axis=1),
                     np.sum(np.square(template_samples)), np.sum(np.square(image_samples[:]), axis=1))
             sigma_x = np.sqrt((sums[2] - np.square(sums[0]) / amount_of_points) / amount_of_points) + epsilon
