@@ -59,7 +59,19 @@ class FastMatch:
         num_configs = np.empty(20)
         num_good_configs = np.empty(20)
         orig_percentages = np.empty(20)
-        ml_model_input = np.empty((0, 8))
+        ml_model_input = np.empty((0, 39))
+        histogram_data = np.empty((0, 103))
+
+        # preparing input for ML model:
+        avg_template = np.mean(template)
+        avg_image = np.mean(image)
+        avg_ratio = avg_template / avg_image
+        x_gradient = cv2.filter2D(template, -1, np.array([[1, -1]], np.float32))[:, 1:]
+        y_gradient = cv2.filter2D(template, -1, np.array([[1, -1]], np.float32).T)[1:, :]
+        x_gradient = np.mean(np.abs(x_gradient))
+        y_gradient = np.mean(np.abs(y_gradient))
+        smoothness = (x_gradient + y_gradient) / 2
+        template_std = np.std(template)
 
         while True:
             level += 1
@@ -114,30 +126,40 @@ class FastMatch:
 
                 print("min_index", min_index, "correct_index", correct_index)
                 print("required_safety", required_safety)
-                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety])
-                print("configs between best and min_th:", between)
-                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.1])
-                print("configs between best and min_th * 1.1:", between)
-                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.2])
-                print("configs between best and min_th * 1.2:", between)
-                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 1.5])
-                print("configs between best and min_th * 1.5:", between)
-                between = np.count_nonzero(distances_arr[distances_arr <= best_distance + required_safety * 2.0])
-                print("configs between best and min_th * 2.0:", between)
-
-                print("unique configs between best and min_th:", np.unique(affines[distances_arr <= best_distance +
-                                                                                   required_safety], axis=0). shape[0])
-                print("total amount of configs:", distances_arr.shape[0])
 
                 # preparing input for ML model:
                 ideal_th = best_distance + required_safety * 2.0  # this is y/output/label
+                distances_mean = np.mean(distances_arr)
+                distances_median = np.median(distances_arr)
+                distances_std = np.std(distances_arr)
+                max_distance = max(distances)
+                distances_range = max_distance - best_distance
+
                 # the other 7 numbers are features
-                ml_model_input_row = np.array([ideal_th, new_delta, best_distance, image.shape[0], image.shape[1],
-                                               template.shape[0], template.shape[1], len(distances_arr)])
-                print(ml_model_input, ml_model_input_row)
+                ml_model_input_row = np.array([str(level), ideal_th, image.shape[0], image.shape[1], template.shape[0],
+                                               avg_ratio, smoothness, template_std, new_delta, best_distance,
+                                               distances_mean, distances_std, np.percentile(distances_arr, 5),
+                                               np.percentile(distances_arr, 10), np.percentile(distances_arr, 15),
+                                               np.percentile(distances_arr, 20), np.percentile(distances_arr, 25),
+                                               np.percentile(distances_arr, 30), np.percentile(distances_arr, 35),
+                                               np.percentile(distances_arr, 40), np.percentile(distances_arr, 45),
+                                               np.percentile(distances_arr, 50), np.percentile(distances_arr, 55),
+                                               np.percentile(distances_arr, 60), np.percentile(distances_arr, 65),
+                                               np.percentile(distances_arr, 70), np.percentile(distances_arr, 75),
+                                               np.percentile(distances_arr, 80), np.percentile(distances_arr, 85),
+                                               np.percentile(distances_arr, 90), np.percentile(distances_arr, 95),
+                                               distances_range, len(distances_arr),
+                                               best_affine[0, 0], best_affine[0, 1], best_affine[0, 2],
+                                               best_affine[1, 0], best_affine[1, 1], best_affine[1, 2]])
+                # print(ml_model_input, ml_model_input_row)
                 ml_model_input = np.vstack([ml_model_input, ml_model_input_row])
 
-                '''
+                distances_hist, _ = np.histogram(distances_arr, bins=100)
+                histogram_data_row = np.concatenate(([str(level), np.min(distances_arr), np.max(distances_arr)],
+                                                     distances_hist))
+                histogram_data = np.vstack([histogram_data, histogram_data_row])
+
+                ''' Histograms:
                 plt.figure()
                 n, bins, patches = plt.hist(distances_arr, bins=100)
 
@@ -238,8 +260,8 @@ class FastMatch:
         print('\n\n~~~ Finished FAsT Match in {:.8f} seconds ~~~'.format(time.time() - total_time))
         print("Result corners:")
         print(corners[0], corners[1], corners[2], corners[3])
-        print("ml_model_input", ml_model_input)
-        return corners.reshape((-1, 1, 2)), ml_model_input
+        # print("ml_model_input", ml_model_input)
+        return corners.reshape((-1, 1, 2)), ml_model_input, histogram_data
 
     @staticmethod
     def create_list_of_configs(net: MatchNet):
