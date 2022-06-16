@@ -64,7 +64,7 @@ def random_template(image, min_scale=0.5, max_scale=2):
             if np.std(template) > 0.1:
                 break
 
-        if attempt > 20:
-            raise Exception("Too many attempts to find random affine template")
+        # if attempt > 20:
+            # raise Exception("Too many attempts to find random affine template")
 
     return template, affine_corners.T.astype(int)

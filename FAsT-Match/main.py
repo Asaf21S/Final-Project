@@ -3,22 +3,18 @@ from CreateSamples import random_template
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-import sklearn
+# import sklearn
 import time
 from os import listdir
 from csv import writer
 
 
-def fast_match():
-    directory = r"TestImages"
+def fast_match(iterations, image_directory, features_file, histogram_file):
     fm = FastMatch()
-    iterations = 2  # later 100 (samples for each new image)
-
     tic1 = time.time()
-    for image_name in listdir(directory):
+    for image_name in listdir(image_directory):
         if image_name.endswith(".png") or image_name.endswith(".jpg") or image_name.endswith(".jpeg"):
-            print("image name:", image_name)
-            image = cv2.imread(directory + "\\" + image_name)
+            image = cv2.imread(image_directory + "\\" + image_name)
 
             # result_image = image.copy()
             # template = cv2.imread(r"Images\template.png")
@@ -28,6 +24,7 @@ def fast_match():
             histogram_data = np.empty((0, 103))
             tic2 = time.time()
             for i in range(iterations):
+                print("Image name:", image_name, ". Template number:", str(i + 1))
                 template, real_corners = random_template(image)
                 corners, ml_model_input, histogram_data_samples = fm.run(image, template, real_corners)
                 print("Actual corners:")
@@ -42,51 +39,10 @@ def fast_match():
                 # cv2.polylines(result_image, [corners], True, (255, 0, 0), 1)
             print("\n\n$$$ Total time for the image {}: {:.8f} seconds $$$".format(image_name, time.time() - tic2))
 
-            with open(r'ML_model/Training_Data.csv', 'a') as training_data_file:
+            with open(features_file, 'a') as training_data_file:
                 writer(training_data_file).writerows(ml_input)
-            with open(r'ML_model/Histogram_Data.csv', 'a') as hist_data_file:
+            with open(histogram_file, 'a') as hist_data_file:
                 writer(hist_data_file).writerows(histogram_data)
-
-            ''' Graphs: feature effect on ideal_th
-            # check how each feature affect the output
-            c = np.linspace(0, 1, ml_input.shape[0])
-            plt.figure()
-            plt.scatter(ml_input[:, 1], ml_input[:, 0], c=c)    
-            plt.figure()
-            plt.scatter(ml_input[:, 2], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 3], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 4], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 5], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 6], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 7], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 8], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 9], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 10], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 11], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 12], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 13], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 14], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 15], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 16], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 17], ml_input[:, 0], c=c)
-            plt.figure()
-            plt.scatter(ml_input[:, 18], ml_input[:, 0], c=c)
-            '''
 
             '''
             plt.figure()
@@ -102,14 +58,31 @@ def fast_match():
             
             plt.show()
             '''
-    print("\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(directory, time.time() - tic1))
+    print("\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(image_directory, time.time() - tic1))
 
-    ''' import the data from the csv file
-    sample_name = np.loadtxt(r'ML_model/Training_Data.csv', dtype='str', delimiter=',', usecols=0)
-    sample_y = np.loadtxt(r'ML_model/Training_Data.csv', dtype='float', delimiter=',', usecols=1)
-    features = np.loadtxt(r'ML_model/Training_Data.csv', dtype='float', delimiter=',', usecols=tuple(range(2, 39)))
-    '''
+
+def show_features(image_directory):
+    # import the data from the csv file
+    sample_name = np.loadtxt(image_directory, dtype='str', delimiter=',', usecols=0)
+    sample_y = np.loadtxt(image_directory, dtype='float', delimiter=',', usecols=1)
+    features = np.loadtxt(image_directory, dtype='float', delimiter=',', usecols=tuple(range(2, 39)))
+    print(sample_name.shape, sample_y.shape, features.shape)
+
+    # Graphs: feature effect on ideal_th
+    # check how each feature affect the output
+    c = np.linspace(0, 1, features.shape[0])
+    for feature in range(features.shape[1]):
+        plt.figure()
+        plt.scatter(features[:, feature], sample_y[:], c=c)
+
+    plt.show()
 
 
 if __name__ == '__main__':
-    fast_match()
+    images_folder = r"Images/Images1"
+    features_csv = r"ML_model/Training_Data1.csv"
+    histogram_csv = r"ML_model/Histogram_Data1.csv"
+    templates_per_image = 2
+
+    fast_match(templates_per_image, images_folder, features_csv, histogram_csv)
+    # show_features(images_folder)
