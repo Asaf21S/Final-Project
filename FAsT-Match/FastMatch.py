@@ -49,8 +49,8 @@ class FastMatch:
         configs = self.create_list_of_configs(net)
         print("----- {:.8f} seconds -----".format(time.time() - tic))
 
-        if configs.shape[0] > 71000000:
-            raise Exception("more than 35 million configs!")
+        # if configs.shape[0] > 71000000:
+            # raise Exception("more than 35 million configs!")
 
         level = 0
         delta_fact = 1.511
