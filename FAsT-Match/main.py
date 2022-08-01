@@ -6,15 +6,13 @@ import cv2
 import time
 from os import listdir
 from csv import writer
-
-from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split
+import MLP
 
 
 def example_run(image, template, real_corners):
     fm = FastMatch()
     result_image = image.copy()
-    corners, _, _ = fm.run(image, template, real_corners)
+    corners, _, _ = fm.run(image, template, real_corners=real_corners)
     print("Actual corners:")
     print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
 
@@ -48,7 +46,7 @@ def fast_match(iterations, image_directory, features_file, histogram_file):
             for i in range(iterations):
                 print("Image name:", image_name, ". Template number:", str(i + 1))
                 template, real_corners = random_template(image)
-                corners, ml_model_input, histogram_data_samples = fm.run(image, template, real_corners)
+                corners, ml_model_input, histogram_data_samples = fm.run(image, template, real_corners=real_corners)
                 print("Actual corners:")
                 print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
                 for lev in range(ml_model_input.shape[0]):
@@ -65,25 +63,6 @@ def fast_match(iterations, image_directory, features_file, histogram_file):
     print("\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(image_directory, time.time() - tic1))
 
 
-def import_data(data_folder):
-    # import the data from the csv files
-    all_names = np.array([])
-    all_ideal_th = np.array([])
-    all_features = np.zeros((0, 37))
-    for file_name in listdir(data_folder):
-        if file_name.endswith(".csv") and file_name.startswith("Training_Data"):
-            file_names = np.loadtxt(data_folder + "\\" + file_name, dtype='str', delimiter=',', usecols=0)
-            file_ideal_th = np.loadtxt(data_folder + "\\" + file_name, dtype='float', delimiter=',', usecols=1)
-            file_features = np.loadtxt(data_folder + "\\" + file_name, dtype='float', delimiter=',',
-                                       usecols=tuple(range(2, 39)))
-            print(file_name, file_names.shape, file_ideal_th.shape, file_features.shape)
-            all_names = np.concatenate((all_names, file_names))
-            all_ideal_th = np.concatenate((all_ideal_th, file_ideal_th))
-            all_features = np.concatenate((all_features, file_features))
-    print(all_names.shape, all_ideal_th.shape, all_features.shape)
-    return all_names, all_ideal_th, all_features
-
-
 def show_features(y, x):
     # Graphs: feature effect on ideal_th
     # check how each feature affect the output
@@ -95,18 +74,74 @@ def show_features(y, x):
     plt.show()
 
 
-def generalize(exact_y):
-    #   TODO: use the histogram data to determine general_y
-    general_y = exact_y
-    return general_y
+def corner_dist(corners1, corners2):
+    corners1_copy = np.copy(corners1)
+    corners1_copy = np.squeeze(corners1_copy)
+    dist1 = corners1_copy - corners2
+    dist1 = np.square(dist1)
+    dist1 = np.sum(dist1, axis=1)
+    dist1 = np.sqrt(dist1)
+    dist1 = np.sum(dist1)
+
+    corners1_copy[[1, 3]] = corners1_copy[[3, 1]]
+    dist2 = corners1_copy - corners2
+    dist2 = np.square(dist2)
+    dist2 = np.sum(dist2, axis=1)
+    dist2 = np.sqrt(dist2)
+    dist2 = np.sum(dist2)
+
+    return min([dist1, dist2])
 
 
-def process(y, x):
-    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1)
-    network = MLPRegressor()  # verbose=True, early_stopping=True)
-    regr = network.fit(x_train, y_train)
-    score = regr.score(x_test, y_test)
-    print("Score:", score)
+def check_model(iterations, image, model):
+    fm = FastMatch()
+    corners_distance_with = []
+    time_with = []
+    corners_distance_without = []
+    time_without = []
+    for i in range(iterations):
+        result_image = image.copy()
+        template, real_corners = random_template(image)
+
+        tic = time.time()
+        corners_without, _, _ = fm.run(image, template)
+        print("Actual corners:")
+        print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
+        time_without.append(time.time() - tic)
+        corners_distance_without.append(corner_dist(corners_without, real_corners))
+
+        tic = time.time()
+        corners_with, _, _ = fm.run(image, template, mlp_model=model)
+        print("Actual corners:")
+        print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
+        time_with.append(time.time() - tic)
+        corners_distance_with.append(corner_dist(corners_with, real_corners))
+
+        cv2.polylines(result_image, [real_corners], True, (0, 255, 0), 1)
+        cv2.polylines(result_image, [corners_without], True, (255, 0, 0), 1)
+        cv2.polylines(result_image, [corners_with], True, (138, 43, 226), 1)
+
+        plt.figure()
+        plt.subplot(2, 2, 1)
+        plt.imshow(image, cmap='gray')
+        plt.title("image")
+        plt.subplot(2, 2, 2)
+        plt.imshow(template, cmap='gray')
+        plt.title("template")
+        plt.subplot(2, 2, 3)
+        plt.imshow(result_image)
+        plt.title("result")
+
+    plt.figure()
+    plt.scatter(range(1, iterations + 1), time_without, c="red")
+    plt.scatter(range(1, iterations + 1), time_with, c="magenta")
+    plt.title("time")
+    plt.figure()
+    plt.scatter(range(1, iterations + 1), corners_distance_without, c="red")
+    plt.scatter(range(1, iterations + 1), corners_distance_with, c="magenta")
+    plt.title("accuracy")
+    print(corners_distance_with, time_with, corners_distance_without, time_without)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -114,6 +149,7 @@ if __name__ == '__main__':
     model_data_folder = r"ML_model"
     features_csv = r"ML_model/Training_Data1.csv"
     histogram_csv = r"ML_model/Histogram_Data1.csv"
+    models_path = r"PyTorch_models"
     templates_per_image = 5
 
     # ex_image = cv2.imread(r"TestImages\image.png")
@@ -123,11 +159,11 @@ if __name__ == '__main__':
 
     # fast_match(templates_per_image, images_folder, features_csv, histogram_csv)
 
-    names, ideal_th, features = import_data(model_data_folder)
-    # show_features(ideal_th, features)
+    # names_data, ideal_th, features = MLP.import_data(model_data_folder)
+    # names_hist, edges, bins = MLP.import_histogram(model_data_folder)
+    # factor = 0.5 / 2
+    # processed_features, processed_ideal_th, processed_bins = MLP.preprocess(features, ideal_th, factor, bins)
 
-    #   ideal_th is exactly the value for the ground truth to proceed to next level, we need to increase it a bit,
-    #   with respect to the histogram values
-    general_th = generalize(ideal_th)
-
-    process(general_th, features)
+    mlp_model = MLP.load_model(models_path + "/mlp0.5.pth")
+    img = cv2.imread(r"Images\Images2\turtle.jpg")
+    check_model(5, img, mlp_model)

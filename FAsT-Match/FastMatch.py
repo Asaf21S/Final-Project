@@ -5,6 +5,8 @@ from random import randrange
 import time
 # import matplotlib.pyplot as plt
 # import pandas as pd
+from sklearn.preprocessing import normalize
+from MLP import model_prediction
 
 
 class FastMatch:
@@ -15,7 +17,7 @@ class FastMatch:
         self.min_scale = min_scale
         self.max_scale = max_scale
 
-    def run(self, image, template, real_corners=None):
+    def run(self, image, template, real_corners=None, mlp_model=None):
         total_time = time.time()
 
         # preprocess the images
@@ -130,12 +132,10 @@ class FastMatch:
                 # preparing input for ML model:
                 ideal_th = best_distance + required_safety * 2.0  # this is y/output/label
                 distances_mean = np.mean(distances_arr)
-                distances_median = np.median(distances_arr)
                 distances_std = np.std(distances_arr)
                 max_distance = max(distances)
                 distances_range = max_distance - best_distance
 
-                # the other 7 numbers are features
                 ml_model_input_row = np.array([str(level), ideal_th, image.shape[0], image.shape[1], template.shape[0],
                                                avg_ratio, smoothness, template_std, new_delta, best_distance,
                                                distances_mean, distances_std, np.percentile(distances_arr, 5),
@@ -181,13 +181,27 @@ class FastMatch:
                 print(desc, type(desc), desc.shape)
                 '''
 
+            mlp_prediction = None
+            if mlp_model is not None:
+                distances_arr = np.array(distances)
+                distances_mean = np.mean(distances_arr)
+                distances_std = np.std(distances_arr)
+                max_distance = max(distances)
+                distances_range = max_distance - best_distance
+                mlp_features = np.array([[template.shape[0], avg_ratio, smoothness, template_std, new_delta,
+                                         best_distance, distances_mean, distances_std, distances_range,
+                                         len(distances_arr)]])
+                mlp_features[:, (0, 9)] = normalize(mlp_features[:, (0, 9)])
+                mlp_features = np.squeeze(mlp_features)
+                mlp_prediction = model_prediction(mlp_model, mlp_features)
+
             print("----- {:.8f} seconds -----".format(time.time() - tic))
 
             # 3] choose the 'surviving' configs and delta for next round
             tic = time.time()
             print("\n----- Level {} get_good_configs, with {} configs -----".format(level, configs.shape[0]))
             good_configs, good_affines, orig_percentage = self.get_good_configs(configs, affines, best_distance,
-                                                                                new_delta, distances)
+                                                                                new_delta, mlp_prediction, distances)
             print("3\tpercentage of good configs = {:.3}".format(orig_percentage))
 
             # collect round stats
@@ -394,8 +408,12 @@ class FastMatch:
         distances = list(score / amount_of_points)
         return distances
 
-    def get_good_configs(self, configs, affines, best_distance, new_delta, distances):
-        threshold = best_distance + self.safety_window(new_delta)
+    def get_good_configs(self, configs, affines, best_distance, new_delta, mlp_prediction, distances):
+        if mlp_prediction is None:
+            threshold = best_distance + self.safety_window(new_delta)
+        else:
+            threshold = mlp_prediction
+
         good_configs = configs[distances <= threshold, :]
         orig_percentage = good_configs.shape[0] / configs.shape[0]
 
