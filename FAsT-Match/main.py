@@ -2,6 +2,7 @@ from FastMatch import FastMatch
 from CreateSamples import random_template
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import cv2
 import time
 from os import listdir
@@ -99,8 +100,8 @@ def check_model(iterations, image, model):
     time_with = []
     corners_distance_without = []
     time_without = []
+    result_image = image.copy()
     for i in range(iterations):
-        result_image = image.copy()
         template, real_corners = random_template(image)
 
         tic = time.time()
@@ -121,16 +122,13 @@ def check_model(iterations, image, model):
         cv2.polylines(result_image, [corners_without], True, (255, 0, 0), 1)
         cv2.polylines(result_image, [corners_with], True, (138, 43, 226), 1)
 
-        plt.figure()
-        plt.subplot(2, 2, 1)
-        plt.imshow(image, cmap='gray')
-        plt.title("image")
-        plt.subplot(2, 2, 2)
-        plt.imshow(template, cmap='gray')
-        plt.title("template")
-        plt.subplot(2, 2, 3)
-        plt.imshow(result_image)
-        plt.title("result")
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(image, cmap='gray')
+    plt.title("image")
+    plt.subplot(1, 2, 2)
+    plt.imshow(result_image)
+    plt.title("result")
 
     plt.figure()
     plt.scatter(range(1, iterations + 1), time_without, c="red")
@@ -141,6 +139,35 @@ def check_model(iterations, image, model):
     plt.scatter(range(1, iterations + 1), corners_distance_with, c="magenta")
     plt.title("accuracy")
     print(corners_distance_with, time_with, corners_distance_without, time_without)
+    plt.show()
+
+
+def import_model_results(results_path):
+    all_corners_distance = np.zeros((7, 0))
+    all_times = np.zeros((7, 0))
+    for file_name in listdir(results_path):
+        if file_name.endswith(".npy"):
+            if file_name.startswith("corners_distance"):
+                corners_distance = np.load(results_path + "/" + file_name)
+                all_corners_distance = np.concatenate((all_corners_distance, corners_distance), axis=1)
+            elif file_name.startswith("times"):
+                times = np.load(results_path + "/" + file_name)
+                all_times = np.concatenate((all_times, times), axis=1)
+    return all_corners_distance, all_times
+
+
+def view_model_results(corners_distance, times):
+    avg_time = np.mean(times, axis=1)
+    print("Average Time:", avg_time)
+
+    plt.figure()
+    plt.scatter(range(corners_distance.shape[1]), corners_distance[0], s=10, color='k', label="without model")
+    colors = cm.rainbow(np.linspace(0, 1, 6))
+    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
+        plt.scatter(range(corners_distance.shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0, 60])
+    plt.legend()
     plt.show()
 
 
@@ -161,9 +188,15 @@ if __name__ == '__main__':
 
     # names_data, ideal_th, features = MLP.import_data(model_data_folder)
     # names_hist, edges, bins = MLP.import_histogram(model_data_folder)
-    # factor = 0.5 / 2
+    # factor = 1.0 / 2
     # processed_features, processed_ideal_th, processed_bins = MLP.preprocess(features, ideal_th, factor, bins)
 
-    mlp_model = MLP.load_model(models_path + "/mlp0.5.pth")
-    img = cv2.imread(r"Images\Images2\turtle.jpg")
-    check_model(5, img, mlp_model)
+    # show_features(processed_ideal_th, processed_features)
+
+    # mlp_model = MLP.load_model(models_path + "/mlp0.5.pth")
+    # img = cv2.imread(r"Images\Images2\zurich_object0024.view05.jpg")
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # check_model(5, img, mlp_model)
+
+    accuracy_results, time_results = import_model_results(models_path)
+    view_model_results(accuracy_results, time_results)
