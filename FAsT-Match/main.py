@@ -21,13 +21,12 @@ def example_run(image, template, real_corners):
     cv2.polylines(result_image, [corners], True, (255, 0, 0), 1)
 
     plt.figure()
-    plt.subplot(2, 2, 1)
     plt.imshow(image, cmap='gray')
     plt.title("image")
-    plt.subplot(2, 2, 2)
+    plt.figure()
     plt.imshow(template, cmap='gray')
     plt.title("template")
-    plt.subplot(2, 2, 3)
+    plt.figure()
     plt.imshow(result_image)
     plt.title("result")
 
@@ -143,14 +142,16 @@ def check_model(iterations, image, model):
 
 
 def import_model_results(results_path):
-    all_corners_distance = np.zeros((7, 0))
-    all_times = np.zeros((7, 0))
+    all_corners_distance = np.zeros((11, 0))
+    all_times = np.zeros((11, 0))
     for file_name in listdir(results_path):
         if file_name.endswith(".npy"):
-            if file_name.startswith("corners_distance"):
+            if file_name.startswith("corners_distance3_"):# and not (file_name.startswith("corners_distance2_") or
+                                                          #       file_name.startswith("corners_distance3_")):
                 corners_distance = np.load(results_path + "/" + file_name)
                 all_corners_distance = np.concatenate((all_corners_distance, corners_distance), axis=1)
-            elif file_name.startswith("times"):
+            elif file_name.startswith("times3_"):# and not (file_name.startswith("times2_") or
+                                                 #       file_name.startswith("times3_")):
                 times = np.load(results_path + "/" + file_name)
                 all_times = np.concatenate((all_times, times), axis=1)
     return all_corners_distance, all_times
@@ -159,15 +160,41 @@ def import_model_results(results_path):
 def view_model_results(corners_distance, times):
     avg_time = np.mean(times, axis=1)
     print("Average Time:", avg_time)
+    avg_accuracy = np.mean(corners_distance, axis=1)
+    print("Average Accuracy:", avg_accuracy)
+
+    plt.figure()
+    # plt.bar(np.array(["without model", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_time)
+    # plt.bar(np.array(["without model", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_time)
+    plt.bar(np.array(["without model", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]),
+            avg_time)
+    plt.title("Average Time")
+
+    plt.figure()
+    # plt.bar(np.array(["without model", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_accuracy)
+    # plt.bar(np.array(["without model", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_accuracy)
+    plt.bar(np.array(["without model", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]),
+            avg_accuracy)
+    plt.title("Average Accuracy")
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance.shape[0] - 1))
 
     plt.figure()
     plt.scatter(range(corners_distance.shape[1]), corners_distance[0], s=10, color='k', label="without model")
-    colors = cm.rainbow(np.linspace(0, 1, 6))
-    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
+    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
+        plt.scatter(range(corners_distance.shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Accuracy")
+    plt.legend()
+
+    plt.figure()
+    plt.scatter(range(corners_distance.shape[1]), corners_distance[0], s=10, color='k', label="without model")
+    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
         plt.scatter(range(corners_distance.shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 60])
+    plt.title("Limited Accuracy")
     plt.legend()
+
     plt.show()
 
 
@@ -196,7 +223,7 @@ if __name__ == '__main__':
     # mlp_model = MLP.load_model(models_path + "/mlp0.5.pth")
     # img = cv2.imread(r"Images\Images2\zurich_object0024.view05.jpg")
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # check_model(5, img, mlp_model)
+    # check_model(3, img, mlp_model)
 
     accuracy_results, time_results = import_model_results(models_path)
     view_model_results(accuracy_results, time_results)
