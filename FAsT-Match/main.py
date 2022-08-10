@@ -142,54 +142,221 @@ def check_model(iterations, image, model):
 
 
 def import_model_results(results_path):
-    all_corners_distance = np.zeros((11, 0))
-    all_times = np.zeros((11, 0))
+    all_corners_distance_1 = np.zeros((7, 0))
+    all_times_1 = np.zeros((7, 0))
+    all_corners_distance_2 = np.zeros((8, 0))
+    all_times_2 = np.zeros((8, 0))
+    all_corners_distance_3 = np.zeros((11, 0))
+    all_times_3 = np.zeros((11, 0))
+    all_corners_distance_4 = np.zeros((16, 0))
+    all_times_4 = np.zeros((16, 0))
+
     for file_name in listdir(results_path):
         if file_name.endswith(".npy"):
-            if file_name.startswith("corners_distance3_"):# and not (file_name.startswith("corners_distance2_") or
-                                                          #       file_name.startswith("corners_distance3_")):
+            if file_name.startswith("corners_distance1"):
                 corners_distance = np.load(results_path + "/" + file_name)
-                all_corners_distance = np.concatenate((all_corners_distance, corners_distance), axis=1)
-            elif file_name.startswith("times3_"):# and not (file_name.startswith("times2_") or
-                                                 #       file_name.startswith("times3_")):
+                all_corners_distance_1 = np.concatenate((all_corners_distance_1, corners_distance), axis=1)
+            elif file_name.startswith("corners_distance2"):
+                corners_distance = np.load(results_path + "/" + file_name)
+                all_corners_distance_2 = np.concatenate((all_corners_distance_2, corners_distance), axis=1)
+            elif file_name.startswith("corners_distance3"):
+                corners_distance = np.load(results_path + "/" + file_name)
+                all_corners_distance_3 = np.concatenate((all_corners_distance_3, corners_distance), axis=1)
+            elif file_name.startswith("corners_distance4"):
+                corners_distance = np.load(results_path + "/" + file_name)
+                all_corners_distance_4 = np.concatenate((all_corners_distance_4, corners_distance), axis=1)
+            elif file_name.startswith("times1"):
                 times = np.load(results_path + "/" + file_name)
-                all_times = np.concatenate((all_times, times), axis=1)
-    return all_corners_distance, all_times
+                all_times_1 = np.concatenate((all_times_1, times), axis=1)
+            elif file_name.startswith("times2"):
+                times = np.load(results_path + "/" + file_name)
+                all_times_2 = np.concatenate((all_times_2, times), axis=1)
+            elif file_name.startswith("times3"):
+                times = np.load(results_path + "/" + file_name)
+                all_times_3 = np.concatenate((all_times_3, times), axis=1)
+            elif file_name.startswith("times4"):
+                times = np.load(results_path + "/" + file_name)
+                all_times_4 = np.concatenate((all_times_4, times), axis=1)
+    return (all_corners_distance_1, all_corners_distance_2, all_corners_distance_3, all_corners_distance_4),\
+           (all_times_1, all_times_2, all_times_3, all_times_4)
 
 
 def view_model_results(corners_distance, times):
-    avg_time = np.mean(times, axis=1)
-    print("Average Time:", avg_time)
-    avg_accuracy = np.mean(corners_distance, axis=1)
-    print("Average Accuracy:", avg_accuracy)
+    avg_acc_1 = np.average(corners_distance[0], axis=1)
+    avg_tme_1 = np.average(times[0], axis=1)
+    med_acc_1 = np.median(corners_distance[0], axis=1)
+    med_tme_1 = np.median(times[0], axis=1)
 
-    plt.figure()
-    # plt.bar(np.array(["without model", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_time)
-    # plt.bar(np.array(["without model", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_time)
-    plt.bar(np.array(["without model", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]),
-            avg_time)
-    plt.title("Average Time")
+    avg_acc_2 = np.average(corners_distance[1], axis=1)
+    avg_tme_2 = np.average(times[1], axis=1)
+    med_acc_2 = np.median(corners_distance[1], axis=1)
+    med_tme_2 = np.median(times[1], axis=1)
 
-    plt.figure()
-    # plt.bar(np.array(["without model", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_accuracy)
-    # plt.bar(np.array(["without model", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_accuracy)
-    plt.bar(np.array(["without model", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]),
-            avg_accuracy)
-    plt.title("Average Accuracy")
+    avg_acc_3 = np.average(corners_distance[2], axis=1)
+    avg_tme_3 = np.average(times[2], axis=1)
+    med_acc_3 = np.median(corners_distance[2], axis=1)
+    med_tme_3 = np.median(times[2], axis=1)
 
-    colors = cm.rainbow(np.linspace(0, 1, corners_distance.shape[0] - 1))
+    avg_acc_4 = np.average(corners_distance[3], axis=1)
+    avg_tme_4 = np.average(times[3], axis=1)
+    med_acc_4 = np.median(corners_distance[3], axis=1)
+    med_tme_4 = np.median(times[3], axis=1)
 
-    plt.figure()
-    plt.scatter(range(corners_distance.shape[1]), corners_distance[0], s=10, color='k', label="without model")
-    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
-        plt.scatter(range(corners_distance.shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_acc_1, color='orange', label="Average")
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), med_acc_1, width=0.6, color='red',
+            label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Accuracy")
+
+    plt.subplot(1, 2, 2)
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_tme_1, color='orange', label="Average")
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), med_tme_1, width=0.6, color='red',
+            label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Time")
+
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_acc_2, color='orange',
+            label="Average")
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), med_acc_2, width=0.6, color='red',
+            label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Accuracy")
+
+    plt.subplot(1, 2, 2)
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_tme_2, color='orange',
+            label="Average")
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), med_tme_2, width=0.6, color='red',
+            label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Time")
+
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), avg_acc_3,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), med_acc_3,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Accuracy")
+
+    plt.subplot(1, 2, 2)
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), avg_tme_3,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), med_tme_3,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Time")
+
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_acc_4,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_acc_4,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Accuracy")
+
+    plt.subplot(1, 2, 2)
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_tme_4,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_tme_4,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Time")
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance[0].shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(corners_distance[0].shape[1]), corners_distance[0][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[0][1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
+        plt.scatter(range(corners_distance[0].shape[1]), y, s=10, color=c, label="model " + mod)
     plt.title("Accuracy")
     plt.legend()
 
-    plt.figure()
-    plt.scatter(range(corners_distance.shape[1]), corners_distance[0], s=10, color='k', label="without model")
-    for y, c, mod in zip(corners_distance[1:], colors, np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
-        plt.scatter(range(corners_distance.shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(corners_distance[0].shape[1]), corners_distance[0][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[0][1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
+        plt.scatter(range(corners_distance[0].shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0, 60])
+    plt.title("Limited Accuracy")
+    plt.legend()
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance[1].shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(corners_distance[1].shape[1]), corners_distance[1][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[1][1:], colors, np.array(["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"])):
+        plt.scatter(range(corners_distance[1].shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Accuracy")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(corners_distance[1].shape[1]), corners_distance[1][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[1][1:], colors, np.array(["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"])):
+        plt.scatter(range(corners_distance[1].shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0, 60])
+    plt.title("Limited Accuracy")
+    plt.legend()
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance[2].shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(corners_distance[2].shape[1]), corners_distance[2][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[2][1:], colors,
+                         np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
+        plt.scatter(range(corners_distance[2].shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Accuracy")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(corners_distance[2].shape[1]), corners_distance[2][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[2][1:], colors,
+                         np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
+        plt.scatter(range(corners_distance[2].shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0, 60])
+    plt.title("Limited Accuracy")
+    plt.legend()
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance[3].shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(corners_distance[3].shape[1]), corners_distance[3][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[3][1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        if mod.startswith("0.26") or mod.startswith("0.42"):
+            plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Accuracy")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(corners_distance[3].shape[1]), corners_distance[3][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[3][1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        if mod.startswith("0.26") or mod.startswith("0.42"):
+            plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 60])
     plt.title("Limited Accuracy")
