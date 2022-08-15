@@ -7,7 +7,9 @@ import cv2
 import time
 from os import listdir
 from csv import writer
-import MLP
+
+
+# import MLP
 
 
 def example_run(image, template, real_corners):
@@ -51,7 +53,8 @@ def fast_match(iterations, image_directory, features_file, histogram_file):
                 print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
                 for lev in range(ml_model_input.shape[0]):
                     ml_model_input[lev, 0] = image_name + "_" + str(i) + "_" + str(ml_model_input[lev, 0])
-                    histogram_data_samples[lev, 0] = image_name + "_" + str(i) + "_" + str(histogram_data_samples[lev, 0])
+                    histogram_data_samples[lev, 0] = image_name + "_" + str(i) + "_" + str(
+                        histogram_data_samples[lev, 0])
                 ml_input = np.vstack([ml_input, ml_model_input])
                 histogram_data = np.vstack([histogram_data, histogram_data_samples])
             print("\n\n$$$ Total time for the image {}: {:.8f} seconds $$$".format(image_name, time.time() - tic2))
@@ -60,7 +63,9 @@ def fast_match(iterations, image_directory, features_file, histogram_file):
                 writer(training_data_file).writerows(ml_input)
             with open(histogram_file, 'a') as hist_data_file:
                 writer(hist_data_file).writerows(histogram_data)
-    print("\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(image_directory, time.time() - tic1))
+    print(
+        "\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(
+            image_directory, time.time() - tic1))
 
 
 def show_features(y, x):
@@ -150,6 +155,9 @@ def import_model_results(results_path):
     all_times_3 = np.zeros((11, 0))
     all_corners_distance_4 = np.zeros((16, 0))
     all_times_4 = np.zeros((16, 0))
+    all_corners_distance_5 = np.zeros((16, 0))
+    all_jaccard_index_5 = np.zeros((16, 0))
+    all_times_5 = np.zeros((16, 0))
 
     for file_name in listdir(results_path):
         if file_name.endswith(".npy"):
@@ -165,6 +173,12 @@ def import_model_results(results_path):
             elif file_name.startswith("corners_distance4"):
                 corners_distance = np.load(results_path + "/" + file_name)
                 all_corners_distance_4 = np.concatenate((all_corners_distance_4, corners_distance), axis=1)
+            elif file_name.startswith("corners_distance5"):
+                corners_distance = np.load(results_path + "/" + file_name)
+                all_corners_distance_5 = np.concatenate((all_corners_distance_5, corners_distance), axis=1)
+            elif file_name.startswith("jaccard_index5"):
+                jaccard_index = np.load(results_path + "/" + file_name)
+                all_jaccard_index_5 = np.concatenate((all_jaccard_index_5, jaccard_index), axis=1)
             elif file_name.startswith("times1"):
                 times = np.load(results_path + "/" + file_name)
                 all_times_1 = np.concatenate((all_times_1, times), axis=1)
@@ -177,11 +191,15 @@ def import_model_results(results_path):
             elif file_name.startswith("times4"):
                 times = np.load(results_path + "/" + file_name)
                 all_times_4 = np.concatenate((all_times_4, times), axis=1)
-    return (all_corners_distance_1, all_corners_distance_2, all_corners_distance_3, all_corners_distance_4),\
-           (all_times_1, all_times_2, all_times_3, all_times_4)
+            elif file_name.startswith("times5"):
+                times = np.load(results_path + "/" + file_name)
+                all_times_5 = np.concatenate((all_times_5, times), axis=1)
+    return (all_corners_distance_1, all_corners_distance_2, all_corners_distance_3, all_corners_distance_4,
+            all_corners_distance_5), all_jaccard_index_5, (all_times_1, all_times_2, all_times_3, all_times_4,
+                                                           all_times_5)
 
 
-def view_model_results(corners_distance, times):
+def view_model_results(corners_distance, jaccard, times):
     avg_acc_1 = np.average(corners_distance[0], axis=1)
     avg_tme_1 = np.average(times[0], axis=1)
     med_acc_1 = np.median(corners_distance[0], axis=1)
@@ -201,6 +219,13 @@ def view_model_results(corners_distance, times):
     avg_tme_4 = np.average(times[3], axis=1)
     med_acc_4 = np.median(corners_distance[3], axis=1)
     med_tme_4 = np.median(times[3], axis=1)
+
+    avg_acc_5 = np.average(corners_distance[4], axis=1)
+    avg_tme_5 = np.average(times[4], axis=1)
+    avg_jac_5 = np.average(jaccard, axis=1)
+    med_acc_5 = np.median(corners_distance[4], axis=1)
+    med_tme_5 = np.median(times[4], axis=1)
+    med_jac_5 = np.median(jaccard, axis=1)
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
@@ -280,6 +305,40 @@ def view_model_results(corners_distance, times):
     plt.legend()
     plt.title("Time")
 
+    plt.figure(figsize=(15, 5))
+    plt.subplot(1, 3, 1)
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_acc_5,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_acc_5,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Accuracy")
+
+    plt.subplot(1, 3, 2)
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_jac_5,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_jac_5,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Jaccard index")
+
+    plt.subplot(1, 3, 3)
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_tme_5,
+            color='orange', label="Average")
+    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_tme_5,
+            width=0.6, color='red', label="Median")
+    plt.xticks(rotation=-45)
+    plt.legend()
+    plt.title("Time")
+
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[0].shape[0] - 1))
     plt.figure(figsize=(13, 5))
     plt.subplot(1, 2, 1)
@@ -294,7 +353,7 @@ def view_model_results(corners_distance, times):
     for y, c, mod in zip(corners_distance[0][1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
         plt.scatter(range(corners_distance[0].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
-    ax.set_ylim([0, 60])
+    ax.set_ylim([0, 15])
     plt.title("Limited Accuracy")
     plt.legend()
 
@@ -312,7 +371,7 @@ def view_model_results(corners_distance, times):
     for y, c, mod in zip(corners_distance[1][1:], colors, np.array(["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"])):
         plt.scatter(range(corners_distance[1].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
-    ax.set_ylim([0, 60])
+    ax.set_ylim([0, 15])
     plt.title("Limited Accuracy")
     plt.legend()
 
@@ -332,7 +391,7 @@ def view_model_results(corners_distance, times):
                          np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
         plt.scatter(range(corners_distance[2].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
-    ax.set_ylim([0, 60])
+    ax.set_ylim([0, 15])
     plt.title("Limited Accuracy")
     plt.legend()
 
@@ -344,8 +403,7 @@ def view_model_results(corners_distance, times):
                          np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
                                    "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
                                    "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
-        if mod.startswith("0.26") or mod.startswith("0.42"):
-            plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
+        plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
     plt.title("Accuracy")
     plt.legend()
 
@@ -355,11 +413,58 @@ def view_model_results(corners_distance, times):
                          np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
                                    "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
                                    "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
-        if mod.startswith("0.26") or mod.startswith("0.42"):
-            plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
+        plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
-    ax.set_ylim([0, 60])
+    ax.set_ylim([0, 15])
     plt.title("Limited Accuracy")
+    plt.legend()
+
+    colors = cm.rainbow(np.linspace(0, 1, corners_distance[4].shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(corners_distance[4].shape[1]), corners_distance[4][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[4][1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        plt.scatter(range(corners_distance[4].shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Accuracy")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(corners_distance[4].shape[1]), corners_distance[4][0], s=10, color='k', label="None")
+    for y, c, mod in zip(corners_distance[4][1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        plt.scatter(range(corners_distance[4].shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0, 15])
+    plt.title("Limited Accuracy")
+    plt.legend()
+
+    colors = cm.rainbow(np.linspace(0, 1, jaccard.shape[0] - 1))
+    plt.figure(figsize=(13, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(range(jaccard.shape[1]), jaccard[0], s=10, color='k', label="None")
+    for y, c, mod in zip(jaccard[1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        plt.scatter(range(jaccard.shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Jaccard Index")
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(range(jaccard.shape[1]), jaccard[0], s=10, color='k', label="None")
+    for y, c, mod in zip(jaccard[1:], colors,
+                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
+                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
+                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+        plt.scatter(range(jaccard.shape[1]), y, s=10, color=c, label="model " + mod)
+    ax = plt.gca()
+    ax.set_ylim([0.9, 1.0])
+    plt.title("Limited Jaccard Index")
     plt.legend()
 
     plt.show()
@@ -373,9 +478,11 @@ if __name__ == '__main__':
     models_path = r"PyTorch_models"
     templates_per_image = 5
 
-    # ex_image = cv2.imread(r"TestImages\image.png")
+    # ex_image = cv2.imread(r"Images\Images2\thai_food.jpg")
+    # ex_image = cv2.cvtColor(ex_image, cv2.COLOR_BGR2RGB)
     # ex_template = cv2.imread(r"TestImages\template.png")
     # ex_real_corners = np.array([[147, 212], [214, 188], [267, 35], [200, 60]])
+    # ex_template, ex_real_corners = random_template(ex_image)
     # example_run(ex_image, ex_template, ex_real_corners)
 
     # fast_match(templates_per_image, images_folder, features_csv, histogram_csv)
@@ -392,5 +499,5 @@ if __name__ == '__main__':
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # check_model(3, img, mlp_model)
 
-    accuracy_results, time_results = import_model_results(models_path)
-    view_model_results(accuracy_results, time_results)
+    accuracy_results, jaccard_index, time_results = import_model_results(models_path)
+    view_model_results(accuracy_results, jaccard_index, time_results)
