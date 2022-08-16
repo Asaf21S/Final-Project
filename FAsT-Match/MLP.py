@@ -55,7 +55,7 @@ def preprocess(features, ideal_th, factor, bins):
     processed_features[:, (0, 9)] = normalize(processed_features[:, (0, 9)])
 
     processed_ideal_th -= processed_features[:, 5]
-    processed_ideal_th *= factor
+    processed_ideal_th *= factor / 2.0
     processed_ideal_th += processed_features[:, 5]
     processed_ideal_th = np.expand_dims(ideal_th, axis=1)
 

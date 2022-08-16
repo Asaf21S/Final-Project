@@ -7,8 +7,6 @@ import cv2
 import time
 from os import listdir
 from csv import writer
-
-
 # import MLP
 
 
@@ -35,7 +33,7 @@ def example_run(image, template, real_corners):
     plt.show()
 
 
-def fast_match(iterations, image_directory, features_file, histogram_file):
+def samples_collection(iterations, image_directory, features_file, histogram_file):
     fm = FastMatch()
     tic1 = time.time()
     for image_name in listdir(image_directory):
@@ -63,9 +61,7 @@ def fast_match(iterations, image_directory, features_file, histogram_file):
                 writer(training_data_file).writerows(ml_input)
             with open(histogram_file, 'a') as hist_data_file:
                 writer(hist_data_file).writerows(histogram_data)
-    print(
-        "\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(
-            image_directory, time.time() - tic1))
+    print("\n\n-------------------@@@@@ Total time for the images in directory {}: {:.8f} seconds @@@@@-------------------".format(image_directory, time.time() - tic1))
 
 
 def show_features(y, x):
@@ -200,41 +196,46 @@ def import_model_results(results_path):
 
 
 def view_model_results(corners_distance, jaccard, times):
-    avg_acc_1 = np.average(corners_distance[0], axis=1)
+    avg_cdt_1 = np.average(corners_distance[0], axis=1)
     avg_tme_1 = np.average(times[0], axis=1)
-    med_acc_1 = np.median(corners_distance[0], axis=1)
+    med_cdt_1 = np.median(corners_distance[0], axis=1)
     med_tme_1 = np.median(times[0], axis=1)
 
-    avg_acc_2 = np.average(corners_distance[1], axis=1)
+    avg_cdt_2 = np.average(corners_distance[1], axis=1)
     avg_tme_2 = np.average(times[1], axis=1)
-    med_acc_2 = np.median(corners_distance[1], axis=1)
+    med_cdt_2 = np.median(corners_distance[1], axis=1)
     med_tme_2 = np.median(times[1], axis=1)
 
-    avg_acc_3 = np.average(corners_distance[2], axis=1)
+    avg_cdt_3 = np.average(corners_distance[2], axis=1)
     avg_tme_3 = np.average(times[2], axis=1)
-    med_acc_3 = np.median(corners_distance[2], axis=1)
+    med_cdt_3 = np.median(corners_distance[2], axis=1)
     med_tme_3 = np.median(times[2], axis=1)
 
-    avg_acc_4 = np.average(corners_distance[3], axis=1)
+    '''
+    "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
+    "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"
+    '''
+
+    avg_cdt_4 = np.average(corners_distance[3], axis=1)
     avg_tme_4 = np.average(times[3], axis=1)
-    med_acc_4 = np.median(corners_distance[3], axis=1)
+    med_cdt_4 = np.median(corners_distance[3], axis=1)
     med_tme_4 = np.median(times[3], axis=1)
 
-    avg_acc_5 = np.average(corners_distance[4], axis=1)
+    avg_cdt_5 = np.average(corners_distance[4], axis=1)
     avg_tme_5 = np.average(times[4], axis=1)
     avg_jac_5 = np.average(jaccard, axis=1)
-    med_acc_5 = np.median(corners_distance[4], axis=1)
+    med_cdt_5 = np.median(corners_distance[4], axis=1)
     med_tme_5 = np.median(times[4], axis=1)
     med_jac_5 = np.median(jaccard, axis=1)
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
-    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_acc_1, color='orange', label="Average")
-    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), med_acc_1, width=0.6, color='red',
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_cdt_1, color='orange', label="Average")
+    plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), med_cdt_1, width=0.6, color='red',
             label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
 
     plt.subplot(1, 2, 2)
     plt.bar(np.array(["None", "0.5", "0.8", "1.0", "1.2", "1.5", "2.0"]), avg_tme_1, color='orange', label="Average")
@@ -246,13 +247,13 @@ def view_model_results(corners_distance, jaccard, times):
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
-    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_acc_2, color='orange',
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_cdt_2, color='orange',
             label="Average")
-    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), med_acc_2, width=0.6, color='red',
+    plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), med_cdt_2, width=0.6, color='red',
             label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
 
     plt.subplot(1, 2, 2)
     plt.bar(np.array(["None", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]), avg_tme_2, color='orange',
@@ -265,13 +266,13 @@ def view_model_results(corners_distance, jaccard, times):
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
-    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), avg_acc_3,
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), avg_cdt_3,
             color='orange', label="Average")
-    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), med_acc_3,
+    plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), med_cdt_3,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
 
     plt.subplot(1, 2, 2)
     plt.bar(np.array(["None", "0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"]), avg_tme_3,
@@ -284,60 +285,62 @@ def view_model_results(corners_distance, jaccard, times):
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_acc_4,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_cdt_4,
             color='orange', label="Average")
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_acc_4,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), med_cdt_4,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
 
     plt.subplot(1, 2, 2)
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_tme_4,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_tme_4,
             color='orange', label="Average")
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_tme_4,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), med_tme_4,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
     plt.title("Time")
 
-    plt.figure(figsize=(15, 5))
-    plt.subplot(1, 3, 1)
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_acc_5,
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_cdt_5,
             color='orange', label="Average")
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_acc_5,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), med_cdt_5,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
 
-    plt.subplot(1, 3, 2)
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_jac_5,
+    plt.subplot(1, 2, 2)
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_tme_5,
             color='orange', label="Average")
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_jac_5,
-            width=0.6, color='red', label="Median")
-    plt.xticks(rotation=-45)
-    plt.legend()
-    plt.title("Jaccard index")
-
-    plt.subplot(1, 3, 3)
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), avg_tme_5,
-            color='orange', label="Average")
-    plt.bar(np.array(["None", "0.15", "0.165", "0.1815", "0.19965", "0.219615", "0.241577", "0.265734", "0.292308",
-                      "0.321538", "0.353692", "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"]), med_tme_5,
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), med_tme_5,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
     plt.legend()
     plt.title("Time")
+
+    plt.figure()
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), med_jac_5,
+            width=0.6, color='red', label="Median")
+    plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
+                      "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_jac_5,
+            color='orange', label="Average")
+    plt.xticks(rotation=-45)
+    ax = plt.gca()
+    ax.set_ylim([0.85, 1])
+    plt.legend()
+    plt.title("Jaccard Index in range 0.85 to 1")
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[0].shape[0] - 1))
     plt.figure(figsize=(13, 5))
@@ -345,7 +348,7 @@ def view_model_results(corners_distance, jaccard, times):
     plt.scatter(range(corners_distance[0].shape[1]), corners_distance[0][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[0][1:], colors, np.array(["0.5", "0.8", "1.0", "1.2", "1.5", "2.0"])):
         plt.scatter(range(corners_distance[0].shape[1]), y, s=10, color=c, label="model " + mod)
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
     plt.legend()
 
     plt.subplot(1, 2, 2)
@@ -354,7 +357,7 @@ def view_model_results(corners_distance, jaccard, times):
         plt.scatter(range(corners_distance[0].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 15])
-    plt.title("Limited Accuracy")
+    plt.title("Limited Corner Distance")
     plt.legend()
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[1].shape[0] - 1))
@@ -363,7 +366,7 @@ def view_model_results(corners_distance, jaccard, times):
     plt.scatter(range(corners_distance[1].shape[1]), corners_distance[1][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[1][1:], colors, np.array(["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"])):
         plt.scatter(range(corners_distance[1].shape[1]), y, s=10, color=c, label="model " + mod)
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
     plt.legend()
 
     plt.subplot(1, 2, 2)
@@ -372,7 +375,7 @@ def view_model_results(corners_distance, jaccard, times):
         plt.scatter(range(corners_distance[1].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 15])
-    plt.title("Limited Accuracy")
+    plt.title("Limited Corner Distance")
     plt.legend()
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[2].shape[0] - 1))
@@ -382,7 +385,7 @@ def view_model_results(corners_distance, jaccard, times):
     for y, c, mod in zip(corners_distance[2][1:], colors,
                          np.array(["0.36", "0.38", "0.4", "0.42", "0.44", "0.46", "0.48", "0.5", "0.52", "0.54"])):
         plt.scatter(range(corners_distance[2].shape[1]), y, s=10, color=c, label="model " + mod)
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
     plt.legend()
 
     plt.subplot(1, 2, 2)
@@ -392,7 +395,7 @@ def view_model_results(corners_distance, jaccard, times):
         plt.scatter(range(corners_distance[2].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 15])
-    plt.title("Limited Accuracy")
+    plt.title("Limited Corner Distance")
     plt.legend()
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[3].shape[0] - 1))
@@ -400,23 +403,21 @@ def view_model_results(corners_distance, jaccard, times):
     plt.subplot(1, 2, 1)
     plt.scatter(range(corners_distance[3].shape[1]), corners_distance[3][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[3][1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
     plt.legend()
 
     plt.subplot(1, 2, 2)
     plt.scatter(range(corners_distance[3].shape[1]), corners_distance[3][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[3][1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(corners_distance[3].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 15])
-    plt.title("Limited Accuracy")
+    plt.title("Limited Corner Distance")
     plt.legend()
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[4].shape[0] - 1))
@@ -424,23 +425,33 @@ def view_model_results(corners_distance, jaccard, times):
     plt.subplot(1, 2, 1)
     plt.scatter(range(corners_distance[4].shape[1]), corners_distance[4][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[4][1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(corners_distance[4].shape[1]), y, s=10, color=c, label="model " + mod)
-    plt.title("Accuracy")
+    plt.title("Corner Distance")
     plt.legend()
 
     plt.subplot(1, 2, 2)
     plt.scatter(range(corners_distance[4].shape[1]), corners_distance[4][0], s=10, color='k', label="None")
     for y, c, mod in zip(corners_distance[4][1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(corners_distance[4].shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
     ax.set_ylim([0, 15])
-    plt.title("Limited Accuracy")
+    plt.title("Corner Distance")
+    plt.legend()
+
+    indices = np.argsort(times[4][0])
+    times[4][:] = times[4][:, indices]
+    plt.figure()
+    plt.scatter(range(times[4].shape[1]), times[4][0], s=10, color='k', label="None")
+    for y, c, mod in zip(times[4][1:], colors,
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
+        if mod in ["0.150", "0.165", "0.181", "0.199", "0.219", "0.241"]:
+            plt.scatter(range(times[4].shape[1]), y, s=10, color=c, label="model " + mod)
+    plt.title("Time")
     plt.legend()
 
     colors = cm.rainbow(np.linspace(0, 1, jaccard.shape[0] - 1))
@@ -448,9 +459,8 @@ def view_model_results(corners_distance, jaccard, times):
     plt.subplot(1, 2, 1)
     plt.scatter(range(jaccard.shape[1]), jaccard[0], s=10, color='k', label="None")
     for y, c, mod in zip(jaccard[1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(jaccard.shape[1]), y, s=10, color=c, label="model " + mod)
     plt.title("Jaccard Index")
     plt.legend()
@@ -458,12 +468,11 @@ def view_model_results(corners_distance, jaccard, times):
     plt.subplot(1, 2, 2)
     plt.scatter(range(jaccard.shape[1]), jaccard[0], s=10, color='k', label="None")
     for y, c, mod in zip(jaccard[1:], colors,
-                         np.array(["0.15", "0.165", "0.1815", "0.19965", "0.219615",
-                                   "0.241577", "0.265734", "0.292308", "0.321538", "0.353692",
-                                   "0.389061", "0.427968", "0.470764", "0.517841", "0.569625"])):
+                         np.array(["0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321",
+                                   "0.353", "0.389", "0.427", "0.470", "0.517", "0.569"])):
         plt.scatter(range(jaccard.shape[1]), y, s=10, color=c, label="model " + mod)
     ax = plt.gca()
-    ax.set_ylim([0.9, 1.0])
+    ax.set_ylim([0.85, 1.0])
     plt.title("Limited Jaccard Index")
     plt.legend()
 
@@ -471,33 +480,49 @@ def view_model_results(corners_distance, jaccard, times):
 
 
 if __name__ == '__main__':
-    images_folder = r"Images/Images1"
+    images_folder = r"Images"
+    features_csv = r"ML_model"
+    histogram_csv = r"ML_model"
     model_data_folder = r"ML_model"
-    features_csv = r"ML_model/Training_Data1.csv"
-    histogram_csv = r"ML_model/Histogram_Data1.csv"
     models_path = r"PyTorch_models"
+
+    # Test the FAsT-Match algorithm on an example image with a given/random template without a model.
+    '''
+    ex_image = cv2.imread(images_folder + "Images2/thai_food.jpg")
+    ex_image = cv2.cvtColor(ex_image, cv2.COLOR_BGR2RGB)
+    ex_template, ex_real_corners = random_template(ex_image)
+    example_run(ex_image, ex_template, ex_real_corners)
+    '''
+
+    # Collect samples data to csv files.
+    '''
     templates_per_image = 5
+    samples_collection(templates_per_image, images_folder + "/Images1",
+                       features_csv + "/Training_Data1.csv", histogram_csv + "/Histogram_Data1.csv")
+    '''
 
-    # ex_image = cv2.imread(r"Images\Images2\thai_food.jpg")
-    # ex_image = cv2.cvtColor(ex_image, cv2.COLOR_BGR2RGB)
-    # ex_template = cv2.imread(r"TestImages\template.png")
-    # ex_real_corners = np.array([[147, 212], [214, 188], [267, 35], [200, 60]])
-    # ex_template, ex_real_corners = random_template(ex_image)
-    # example_run(ex_image, ex_template, ex_real_corners)
+    # Display features' effect on the ideal threshold
+    # Need to import MLP
+    '''
+    names_data, ideal_th, features = MLP.import_data(model_data_folder)
+    names_hist, edges, bins = MLP.import_histogram(model_data_folder)
+    factor = 0.241577
+    processed_features, processed_ideal_th, processed_bins = MLP.preprocess(features, ideal_th, factor, bins)
+    show_features(processed_ideal_th, processed_features)
+    '''
 
-    # fast_match(templates_per_image, images_folder, features_csv, histogram_csv)
+    # Show the speed and accuracy results of different kind of factor values.
+    '''
+    corner_distance_results, jaccard_index_results, time_results = import_model_results(models_path)
+    view_model_results(corner_distance_results, jaccard_index_results, time_results)
+    '''
 
-    # names_data, ideal_th, features = MLP.import_data(model_data_folder)
-    # names_hist, edges, bins = MLP.import_histogram(model_data_folder)
-    # factor = 1.0 / 2
-    # processed_features, processed_ideal_th, processed_bins = MLP.preprocess(features, ideal_th, factor, bins)
-
-    # show_features(processed_ideal_th, processed_features)
-
-    # mlp_model = MLP.load_model(models_path + "/mlp0.5.pth")
-    # img = cv2.imread(r"Images\Images2\zurich_object0024.view05.jpg")
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # check_model(3, img, mlp_model)
-
-    accuracy_results, jaccard_index, time_results = import_model_results(models_path)
-    view_model_results(accuracy_results, jaccard_index, time_results)
+    # Test the FAsT-Match algorithm on an image with a random template and an improvement model.
+    # Need to import MLP
+    '''
+    mlp_model = MLP.load_model(models_path + "/mlp0.241577.pth")
+    img = cv2.imread(images_folder + "/Images2/zurich_object0024.view05.jpg")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    templates_amount = 3
+    check_model(templates_amount, img, mlp_model)
+    '''
