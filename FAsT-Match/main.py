@@ -13,7 +13,7 @@ from csv import writer
 def example_run(image, template, real_corners):
     fm = FastMatch()
     result_image = image.copy()
-    corners, _, _ = fm.run(image, template, real_corners=real_corners)
+    corners, _, _ = fm.run(image, template)
     print("Actual corners:")
     print(real_corners[0], real_corners[1], real_corners[2], real_corners[3])
 
