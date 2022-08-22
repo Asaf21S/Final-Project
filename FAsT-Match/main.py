@@ -315,6 +315,7 @@ def view_model_results(corners_distance, jaccard, times):
                       "0.389", "0.427", "0.470", "0.517", "0.569"]), med_cdt_5,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
+    plt.xlabel("Factor")
     plt.legend()
     plt.title("Corner Distance")
 
@@ -326,8 +327,9 @@ def view_model_results(corners_distance, jaccard, times):
                       "0.389", "0.427", "0.470", "0.517", "0.569"]), med_tme_5,
             width=0.6, color='red', label="Median")
     plt.xticks(rotation=-45)
+    plt.xlabel("Factor")
     plt.legend()
-    plt.title("Time")
+    plt.title("Run-Time")
 
     plt.figure()
     plt.bar(np.array(["None", "0.150", "0.165", "0.181", "0.199", "0.219", "0.241", "0.265", "0.292", "0.321", "0.353",
@@ -337,10 +339,11 @@ def view_model_results(corners_distance, jaccard, times):
                       "0.389", "0.427", "0.470", "0.517", "0.569"]), avg_jac_5,
             color='orange', label="Average")
     plt.xticks(rotation=-45)
+    plt.xlabel("Factor")
     ax = plt.gca()
     ax.set_ylim([0.85, 1])
     plt.legend()
-    plt.title("Jaccard Index in range 0.85 to 1")
+    plt.title("Jaccard Index (in range 0.85 to 1)")
 
     colors = cm.rainbow(np.linspace(0, 1, corners_distance[0].shape[0] - 1))
     plt.figure(figsize=(13, 5))
@@ -512,10 +515,10 @@ if __name__ == '__main__':
     '''
 
     # Show the speed and accuracy results of different kind of factor values.
-    '''
+    ''''''
     corner_distance_results, jaccard_index_results, time_results = import_model_results(models_path)
     view_model_results(corner_distance_results, jaccard_index_results, time_results)
-    '''
+    ''''''
 
     # Test the FAsT-Match algorithm on an image with a random template and an improvement model.
     # Need to import MLP
