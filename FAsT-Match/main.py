@@ -490,12 +490,12 @@ if __name__ == '__main__':
     models_path = r"PyTorch_models"
 
     # Test the FAsT-Match algorithm on an example image with a given/random template without a model.
-    '''
-    ex_image = cv2.imread(images_folder + "Images2/thai_food.jpg")
+    ''''''
+    ex_image = cv2.imread(images_folder + "/Images6/10815824.jpg")
     ex_image = cv2.cvtColor(ex_image, cv2.COLOR_BGR2RGB)
     ex_template, ex_real_corners = random_template(ex_image)
     example_run(ex_image, ex_template, ex_real_corners)
-    '''
+    ''''''
 
     # Collect samples data to csv files.
     '''
